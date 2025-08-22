@@ -35,6 +35,8 @@ export const setAuthToken = (token: string): void => {
 export const removeAuthToken = (): void => {
   localStorage.removeItem('auth_token');
   localStorage.removeItem('user');
+  // Also clear saved credentials if user explicitly logs out
+  localStorage.removeItem('saved_credentials');
 };
 
 export const getUser = () => {
@@ -44,6 +46,133 @@ export const getUser = () => {
 
 export const setUser = (user: any) => {
   localStorage.setItem('user', JSON.stringify(user));
+};
+
+// Secure credential management functions
+interface SavedCredentials {
+  email: string;
+  encryptedPassword: string;
+  rememberMe: boolean;
+  lastUsed: string;
+}
+
+// Simple encryption function (for demo purposes - in production use proper encryption)
+const encryptPassword = (password: string): string => {
+  // Simple base64 encoding with a salt - in production, use proper encryption like AES
+  const salt = 'uganda_housing_salt_2025';
+  return btoa(salt + password + salt);
+};
+
+const decryptPassword = (encryptedPassword: string): string => {
+  try {
+    const salt = 'uganda_housing_salt_2025';
+    const decoded = atob(encryptedPassword);
+    return decoded.replace(new RegExp(salt, 'g'), '');
+  } catch (error) {
+    console.error('Error decrypting password:', error);
+    return '';
+  }
+};
+
+// Save user credentials securely after successful sign-up/login
+export const saveCredentialsSecurely = (email: string, password: string, rememberMe: boolean = true): void => {
+  if (!rememberMe) {
+    // If user doesn't want to be remembered, clear any existing saved credentials
+    localStorage.removeItem('saved_credentials');
+    return;
+  }
+
+  try {
+    const encryptedPassword = encryptPassword(password);
+    const credentialsData: SavedCredentials = {
+      email,
+      encryptedPassword,
+      rememberMe,
+      lastUsed: new Date().toISOString()
+    };
+
+    localStorage.setItem('saved_credentials', JSON.stringify(credentialsData));
+    console.log('Credentials saved securely for auto-login');
+  } catch (error) {
+    console.error('Error saving credentials:', error);
+  }
+};
+
+// Retrieve saved credentials for auto-login
+export const getSavedCredentials = (): { email: string; password: string } | null => {
+  try {
+    const savedData = localStorage.getItem('saved_credentials');
+    if (!savedData) return null;
+
+    const credentials: SavedCredentials = JSON.parse(savedData);
+    
+    // Check if credentials are still valid (not older than 30 days)
+    const lastUsed = new Date(credentials.lastUsed);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    if (lastUsed < thirtyDaysAgo) {
+      // Credentials are too old, remove them
+      localStorage.removeItem('saved_credentials');
+      return null;
+    }
+
+    if (!credentials.rememberMe) {
+      return null;
+    }
+
+    const decryptedPassword = decryptPassword(credentials.encryptedPassword);
+    return {
+      email: credentials.email,
+      password: decryptedPassword
+    };
+  } catch (error) {
+    console.error('Error retrieving saved credentials:', error);
+    // If there's an error, clear the corrupted data
+    localStorage.removeItem('saved_credentials');
+    return null;
+  }
+};
+
+// Check if user has saved credentials
+export const hasSavedCredentials = (): boolean => {
+  const credentials = getSavedCredentials();
+  return credentials !== null;
+};
+
+// Clear saved credentials (for security purposes)
+export const clearSavedCredentials = (): void => {
+  localStorage.removeItem('saved_credentials');
+  console.log('Saved credentials cleared');
+};
+
+// Auto-login function using saved credentials
+export const attemptAutoLogin = async (): Promise<boolean> => {
+  const savedCredentials = getSavedCredentials();
+  
+  if (!savedCredentials) {
+    return false;
+  }
+
+  try {
+    const response = await login(savedCredentials.email, savedCredentials.password);
+    
+    if (response.success) {
+      // Update last used timestamp
+      saveCredentialsSecurely(savedCredentials.email, savedCredentials.password, true);
+      console.log('Auto-login successful');
+      return true;
+    } else {
+      // If auto-login fails, clear the saved credentials as they might be invalid
+      clearSavedCredentials();
+      return false;
+    }
+  } catch (error) {
+    console.error('Auto-login failed:', error);
+    // Clear saved credentials on error
+    clearSavedCredentials();
+    return false;
+  }
 };
 
 export async function apiFetch(path: string, options?: RequestInit) {
@@ -124,7 +253,7 @@ export async function apiFetch(path: string, options?: RequestInit) {
 }
 
 // Authentication functions
-export const login = async (email: string, password: string) => {
+export const login = async (email: string, password: string, rememberMe: boolean = true) => {
   const response = await apiFetch('/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
@@ -133,6 +262,9 @@ export const login = async (email: string, password: string) => {
   if (response.success && response.data) {
     setAuthToken(response.data.token);
     setUser(response.data.user);
+    
+    // Save credentials securely after successful login
+    saveCredentialsSecurely(email, password, rememberMe);
   }
   
   return response;
@@ -145,7 +277,7 @@ export const register = async (userData: {
   password_confirmation: string;
   phone?: string;
   user_type: 'tenant' | 'landlord';
-}) => {
+}, rememberMe: boolean = true) => {
   const response = await apiFetch('/register', {
     method: 'POST',
     body: JSON.stringify(userData),
@@ -154,6 +286,9 @@ export const register = async (userData: {
   if (response.success && response.data) {
     setAuthToken(response.data.token);
     setUser(response.data.user);
+    
+    // Save credentials securely after successful registration
+    saveCredentialsSecurely(userData.email, userData.password, rememberMe);
   }
   
   return response;

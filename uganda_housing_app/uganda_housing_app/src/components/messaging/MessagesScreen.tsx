@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -6,15 +6,14 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Input } from '@/components/ui/input'
 import { 
-  Send, 
+  PaperPlaneTilt, 
   Phone, 
-  Search, 
+  MagnifyingGlass, 
   ArrowLeft,
   Clock,
   Check,
-  CheckCheck
+  Checks
 } from '@phosphor-icons/react'
-import { useKV } from '@github/spark/hooks'
 import { Message } from '@/lib/types'
 import { useAuth } from '@/lib/auth'
 import { toast } from 'sonner'
@@ -35,9 +34,22 @@ interface MessagesScreenProps {
 }
 
 export function MessagesScreen({ onBack }: MessagesScreenProps) {
-  const [threads, setThreads] = useKV<MessageThread[]>('message_threads', [])
+  const [threads, setThreads] = useState<MessageThread[]>([])
   const [selectedThread, setSelectedThread] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Load threads from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('message_threads')
+    if (saved) {
+      setThreads(JSON.parse(saved))
+    }
+  }, [])
+
+  // Save threads to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem('message_threads', JSON.stringify(threads))
+  }, [threads])
 
   const filteredThreads = threads.filter(thread =>
     thread.participantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -66,7 +78,7 @@ export function MessagesScreen({ onBack }: MessagesScreenProps) {
         </div>
         
         <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+          <MagnifyingGlass size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search conversations..."
             value={searchQuery}
@@ -158,10 +170,28 @@ interface ChatViewProps {
 }
 
 function ChatView({ threadId, onBack }: ChatViewProps) {
-  const [messages, setMessages] = useKV<Message[]>(`messages_${threadId}`, [])
+  const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
-  const [threads] = useKV<MessageThread[]>('message_threads', [])
+  const [threads, setThreads] = useState<MessageThread[]>([])
   const { user } = useAuth()
+
+  // Load messages and threads from localStorage
+  useEffect(() => {
+    const savedMessages = localStorage.getItem(`messages_${threadId}`)
+    if (savedMessages) {
+      setMessages(JSON.parse(savedMessages))
+    }
+    
+    const savedThreads = localStorage.getItem('message_threads')
+    if (savedThreads) {
+      setThreads(JSON.parse(savedThreads))
+    }
+  }, [threadId])
+
+  // Save messages to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem(`messages_${threadId}`, JSON.stringify(messages))
+  }, [messages, threadId])
 
   const thread = threads.find(t => t.id === threadId)
   
@@ -170,7 +200,7 @@ function ChatView({ threadId, onBack }: ChatViewProps) {
 
     const message: Message = {
       id: Date.now().toString(),
-      senderId: user.id,
+      senderId: user.id.toString(),
       receiverId: thread?.participantId || '',
       content: newMessage.trim(),
       timestamp: new Date().toISOString(),
@@ -216,12 +246,12 @@ function ChatView({ threadId, onBack }: ChatViewProps) {
             <div
               key={message.id}
               className={`flex ${
-                message.senderId === user?.id ? 'justify-end' : 'justify-start'
+                message.senderId === user?.id.toString() ? 'justify-end' : 'justify-start'
               }`}
             >
               <div
                 className={`max-w-[80%] rounded-lg p-3 ${
-                  message.senderId === user?.id
+                  message.senderId === user?.id.toString()
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted'
                 }`}
@@ -229,7 +259,7 @@ function ChatView({ threadId, onBack }: ChatViewProps) {
                 <p className="text-sm">{message.content}</p>
                 <div
                   className={`flex items-center justify-end space-x-1 mt-1 text-xs ${
-                    message.senderId === user?.id
+                    message.senderId === user?.id.toString()
                       ? 'text-primary-foreground/70'
                       : 'text-muted-foreground'
                   }`}
@@ -241,8 +271,8 @@ function ChatView({ threadId, onBack }: ChatViewProps) {
                       minute: '2-digit'
                     })}
                   </span>
-                  {message.senderId === user?.id && (
-                    message.read ? <CheckCheck size={12} /> : <Check size={12} />
+                  {message.senderId === user?.id.toString() && (
+                    message.read ? <Checks size={12} /> : <Check size={12} />
                   )}
                 </div>
               </div>
@@ -264,7 +294,7 @@ function ChatView({ threadId, onBack }: ChatViewProps) {
             onClick={sendMessage}
             disabled={!newMessage.trim()}
           >
-            <Send size={16} />
+            <PaperPlaneTilt size={16} />
           </Button>
         </div>
       </div>

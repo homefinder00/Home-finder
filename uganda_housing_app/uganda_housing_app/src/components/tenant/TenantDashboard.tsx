@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { useKV } from '@github/spark/hooks'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth'
+import { fetchProperties } from '@/lib/api'
 import { PropertyGrid } from '@/components/property/PropertyCard'
 import { SearchBar } from '@/components/search/SearchBar'
 import { MessagesScreen } from '@/components/messaging/MessagesScreen'
@@ -29,9 +29,43 @@ interface TenantDashboardProps {
 
 export function TenantDashboard({ onLogout }: TenantDashboardProps) {
   const [activeTab, setActiveTab] = useState<TenantTab>('home')
-  const [properties] = useKV<Property[]>('properties', [])
-  const [savedProperties, setSavedProperties] = useKV<SavedProperty[]>('saved_properties', [])
+  const [properties, setProperties] = useState<Property[]>([])
+  const [savedProperties, setSavedProperties] = useState<SavedProperty[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const { user } = useAuth()
+
+  // Load properties from API
+  useEffect(() => {
+    const loadProperties = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetchProperties()
+        if (response.success && response.data) {
+          setProperties(response.data)
+        }
+      } catch (error) {
+        console.error('Failed to load properties:', error)
+        toast.error('Failed to load properties')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadProperties()
+  }, [])
+
+  // Load saved properties from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('saved_properties')
+    if (saved) {
+      setSavedProperties(JSON.parse(saved))
+    }
+  }, [])
+
+  // Save properties to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem('saved_properties', JSON.stringify(savedProperties))
+  }, [savedProperties])
 
   const [searchFilters, setSearchFilters] = useState({
     query: '',
@@ -81,7 +115,7 @@ export function TenantDashboard({ onLogout }: TenantDashboardProps) {
   })
 
   const userSavedProperties = savedProperties
-    .filter(sp => sp.userId === user?.id)
+    .filter(sp => sp.userId === user?.id.toString())
     .map(sp => sp.propertyId)
 
   const savedPropertyList = properties.filter(p => 
@@ -95,12 +129,12 @@ export function TenantDashboard({ onLogout }: TenantDashboardProps) {
     
     if (isAlreadySaved) {
       setSavedProperties((current) => 
-        current.filter(sp => !(sp.userId === user.id && sp.propertyId === propertyId))
+        current.filter(sp => !(sp.userId === user.id.toString() && sp.propertyId === propertyId))
       )
       toast.success('Property removed from saved')
     } else {
       const newSave: SavedProperty = {
-        userId: user.id,
+        userId: user.id.toString(),
         propertyId,
         savedAt: new Date().toISOString()
       }
@@ -221,7 +255,7 @@ export function TenantDashboard({ onLogout }: TenantDashboardProps) {
               <h1 className="text-2xl font-bold">{user?.name}</h1>
               <p className="text-muted-foreground">{user?.phone}</p>
               <Badge variant="outline" className="mt-2">
-                {user?.verified ? 'Verified Account' : 'Unverified'}
+                {user?.email_verified_at ? 'Verified Account' : 'Unverified'}
               </Badge>
             </div>
 

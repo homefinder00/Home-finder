@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { getCurrentUser, logout as apiLogout, getUser, isAuthenticated } from '@/lib/api'
+import { getCurrentUser, logout as apiLogout, getUser, isAuthenticated, attemptAutoLogin } from '@/lib/api'
 
 interface User {
   id: number
@@ -35,6 +35,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = (userData: User) => {
     setUser(userData)
+    // Ensure user data is persisted to localStorage for navigation
+    localStorage.setItem('user', JSON.stringify(userData))
   }
 
   const logout = async () => {
@@ -44,6 +46,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error('Logout error:', error)
     } finally {
       setUser(null)
+      // Clear saved credentials when user manually logs out
+      const { clearSavedCredentials } = await import('@/lib/api')
+      clearSavedCredentials()
     }
   }
 
@@ -76,7 +81,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Verify the token is still valid by refreshing user data
         await refreshUser()
       } else {
-        setIsLoading(false)
+        // Try auto-login with saved credentials
+        const autoLoginSuccess = await attemptAutoLogin()
+        if (!autoLoginSuccess) {
+          setIsLoading(false)
+        }
+        // If auto-login succeeds, the user state will be updated by the login function
       }
     }
 

@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { login, register } from '@/lib/api'
+import { login, register, getSavedCredentials, hasSavedCredentials } from '@/lib/api'
 import { toast } from 'sonner'
 import { User, Lock, Envelope, Phone, UserPlus, Eye, EyeSlash } from '@phosphor-icons/react'
 
@@ -21,6 +22,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'login' }: 
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
 
   // Login form state
   const [loginData, setLoginData] = useState({
@@ -38,12 +40,27 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'login' }: 
     user_type: 'tenant' as 'tenant' | 'landlord',
   })
 
+  // Auto-fill login form with saved credentials when modal opens
+  useEffect(() => {
+    if (isOpen && activeTab === 'login') {
+      const savedCredentials = getSavedCredentials()
+      if (savedCredentials) {
+        setLoginData({
+          email: savedCredentials.email,
+          password: savedCredentials.password
+        })
+        setRememberMe(true)
+        toast.info('Welcome back! Your credentials have been filled automatically.')
+      }
+    }
+  }, [isOpen, activeTab])
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      const response = await login(loginData.email, loginData.password)
+      const response = await login(loginData.email, loginData.password, rememberMe)
       
       if (response.success) {
         toast.success('Login successful!')
@@ -51,6 +68,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'login' }: 
         onClose()
         // Reset form
         setLoginData({ email: '', password: '' })
+        setRememberMe(true)
       } else {
         toast.error(response.message || 'Login failed')
       }
@@ -77,10 +95,10 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'login' }: 
     setIsLoading(true)
 
     try {
-      const response = await register(registerData)
+      const response = await register(registerData, rememberMe)
       
       if (response.success) {
-        toast.success('Registration successful!')
+        toast.success('Registration successful! Your credentials have been saved for future logins.')
         onSuccess(response.data.user)
         onClose()
         // Reset form
@@ -92,6 +110,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'login' }: 
           password_confirmation: '',
           user_type: 'tenant',
         })
+        setRememberMe(true)
       } else {
         if (response.errors) {
           Object.values(response.errors).forEach((errorArray: any) => {
@@ -165,6 +184,20 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'login' }: 
                     {showPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="remember-me"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                />
+                <Label 
+                  htmlFor="remember-me" 
+                  className="text-sm text-muted-foreground cursor-pointer"
+                >
+                  Remember me for automatic login
+                </Label>
               </div>
 
               <Button type="submit" className="w-full" disabled={isLoading}>
@@ -285,6 +318,20 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'login' }: 
                     {showConfirmPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="register-remember-me"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                />
+                <Label 
+                  htmlFor="register-remember-me" 
+                  className="text-sm text-muted-foreground cursor-pointer"
+                >
+                  Save my credentials for automatic login
+                </Label>
               </div>
 
               <Button type="submit" className="w-full" disabled={isLoading}>
