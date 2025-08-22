@@ -1,61 +1,139 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Uganda Housing - Property Rental Platform
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A modern property rental platform for Uganda, built with Laravel (backend) and React (frontend).
 
-## About Laravel
+## 🏠 About This Project
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Uganda Housing is a comprehensive property rental platform that connects landlords with potential tenants across Uganda. The platform features:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **Property Listings**: Browse and search rental properties
+- **Authentication**: Secure user registration and login with Laravel Sanctum
+- **Responsive Design**: Mobile-first design with desktop support
+- **Real-time Features**: Property contact and booking system
+- **Offline Support**: PWA capabilities for offline browsing
+- **Map Integration**: Location-based property search
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 🚀 Quick Start
 
-## Learning Laravel
+**For detailed setup instructions, see [SETUP.md](SETUP.md)**
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Prerequisites
+- PHP 8.1+
+- Composer
+- Node.js 18+
+- Git
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### Get Started in 3 Steps
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+1. **Clone and setup backend**
+   ```bash
+   git clone https://github.com/homefinder00/Home-finder.git
+   cd Home-finder
+   composer install
+   cp .env.example .env
+   php artisan key:generate
+   touch database/database.sqlite
+   php artisan migrate --seed
+   php artisan serve
+   ```
 
-## Laravel Sponsors
+2. **Setup frontend**
+   ```bash
+   cd uganda_housing_app/uganda_housing_app
+   npm install
+   npm run dev
+   ```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+3. **Access the application**
+   - Frontend: http://localhost:5173
+   - Backend API: http://localhost:8000
 
-### Premium Partners
+## 🛠 Tech Stack
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### Backend (Laravel 11)
+- **Framework**: Laravel 11
+- **Database**: SQLite (development) / MySQL (production)
+- **Authentication**: Laravel Sanctum
+- **API**: RESTful API design
 
-## Contributing
+### Frontend (React + TypeScript)
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite
+- **UI Components**: shadcn/ui + Tailwind CSS
+- **Icons**: Phosphor Icons
+- **State Management**: React hooks + Context API
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 📋 Features
 
-## Code of Conduct
+### For Tenants
+- Browse property listings
+- Advanced search and filtering
+- Save favorite properties
+- Contact landlords directly
+- View property details and images
+- Map-based property search
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### For Landlords  
+- List properties for rent
+- Manage property listings
+- Receive tenant inquiries
+- Property analytics (coming soon)
 
-## Security Vulnerabilities
+### Technical Features
+- Responsive mobile-first design
+- Offline-first PWA capabilities
+- Real-time property updates
+- Secure authentication
+- CORS-enabled API
+- SQLite for easy development
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 🤝 Team Collaboration
 
-## License
+### Environment Setup
+- Copy `.env.example` to `.env`
+- Never commit your `.env` file
+- Use SQLite for development (no database server needed)
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Development Workflow
+1. Pull latest changes: `git pull`
+2. Update dependencies: `composer install && npm install`
+3. Run migrations: `php artisan migrate`
+4. Start both servers (Laravel + React)
+
+## 📁 Project Structure
+
+```
+├── app/                    # Laravel application
+│   ├── Http/Controllers/   # API controllers  
+│   └── Models/            # Eloquent models
+├── database/              # Migrations & seeders
+├── routes/api.php         # API routes
+├── uganda_housing_app/    # React frontend
+└── .env.example          # Environment template
+```
+
+## 🔗 API Endpoints
+
+- `GET /api/properties` - List all properties
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout
+- `GET /api/user` - Get authenticated user
+
+## 🚧 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Commit changes: `git commit -m 'Add feature'`
+4. Push to branch: `git push origin feature-name`
+5. Submit a pull request
+
+## 📞 Support
+
+- Check [SETUP.md](SETUP.md) for detailed setup instructions
+- Review logs: `storage/logs/laravel.log`
+- Frontend errors: Browser DevTools Console
+
+## 📄 License
+
+This project is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

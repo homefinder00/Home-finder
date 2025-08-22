@@ -4,46 +4,57 @@ namespace App\Http\Controllers;
 
 use App\Models\Property;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PropertyController extends Controller
 {
-    // List all properties
+    // List all properties (optimized for speed)
     public function index()
     {
-        $properties = Property::all()->map(function ($property) {
-            return [
-                'id' => (string) $property->id,
-                'title' => $property->title,
-                'description' => $property->description,
-                'price' => (float) $property->price,
-                'currency' => $property->currency,
-                'bedrooms' => $property->bedrooms,
-                'bathrooms' => $property->bathrooms ?? 1, // Default to 1 if not set
-                'location' => [
-                    'address' => $property->address,
-                    'latitude' => 0.3476, // Default Kampala coordinates
-                    'longitude' => 32.5825,
-                    'district' => $property->district,
-                ],
-                'images' => [], // Empty for now, can be added later
-                'video' => null,
-                'amenities' => is_string($property->amenities) ? json_decode($property->amenities, true) : $property->amenities,
-                'landlordId' => (string) ($property->user_id ?? 1), // Default landlord ID
-                'landlordName' => $property->landlord_name,
-                'landlordPhone' => $property->landlord_phone,
-                'landlordVerified' => $property->landlord_verified,
-                'available' => $property->available,
-                'createdAt' => $property->created_at->toISOString(),
-                'updatedAt' => $property->updated_at->toISOString(),
-            ];
-        });
+        // Direct database query for maximum speed
+        $properties = DB::table('properties')
+            ->select([
+                'id', 'title', 'description', 'price', 'currency', 
+                'bedrooms', 'amenities', 'address', 'district',
+                'landlord_name', 'landlord_phone', 'landlord_verified',
+                'available', 'created_at', 'updated_at'
+            ])
+            ->where('available', true)
+            ->get()
+            ->map(function ($property) {
+                return [
+                    'id' => (string) $property->id,
+                    'title' => $property->title,
+                    'description' => $property->description,
+                    'price' => (float) $property->price,
+                    'currency' => $property->currency,
+                    'bedrooms' => $property->bedrooms,
+                    'bathrooms' => 1,
+                    'location' => [
+                        'address' => $property->address,
+                        'latitude' => 0.3476,
+                        'longitude' => 32.5825,
+                        'district' => $property->district,
+                    ],
+                    'images' => [],
+                    'video' => null,
+                    'amenities' => json_decode($property->amenities, true) ?: [],
+                    'landlordId' => "1",
+                    'landlordName' => $property->landlord_name,
+                    'landlordPhone' => $property->landlord_phone,
+                    'landlordVerified' => (bool) $property->landlord_verified,
+                    'available' => (bool) $property->available,
+                    'createdAt' => $property->created_at,
+                    'updatedAt' => $property->updated_at,
+                ];
+            });
 
-        // Add basic caching headers
-        return response()->json($properties)
-            ->header('Cache-Control', 'public, max-age=60') // Cache for 1 minute
-            ->header('Access-Control-Allow-Origin', '*')
-            ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-            ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        return response()->json($properties, 200, [
+            'Cache-Control' => 'public, max-age=300',
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers' => 'Content-Type, Authorization',
+        ]);
     }
 
     // Store a new property
